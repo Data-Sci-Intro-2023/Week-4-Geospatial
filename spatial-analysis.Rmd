@@ -183,6 +183,8 @@ occ_buffer %>%
   summarise(total_occ = n(), percent_river = (sum(river_100m == TRUE)/total_occ)*100)
 ```
 
+*Caution:* This analysis is just for teaching purposes, why would you be cautious about these results for answering real research questions? Think about how we filtered everything to a political boundary, what's wrong with this method?
+
 ## Spatial/Nonspatial Joins 
 
 *Spatial join snotel sites to watersheds!*
