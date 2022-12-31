@@ -1,0 +1,56 @@
+---
+title: "Retrieve and Wrangle Spatial Data"
+author: "Caitlin Mothes"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In Week 1 you were introduced to working with geospatial data in R. This week you will dive deeper into wrangling, analyzing, and visualizing geospatial data. In this lesson you will be exposed to various R packages you can retrieve spatial data from and work through importing, wrangling, and saving various spatial data sets.
+
+Start off by updating your setup.R script (you can just copy it over from your previous lesson folders) and add these new packages to your list:
+
+-   `rgbif`
+
+-   `soilDB`
+
+-   `nhdplusTools`
+
+```{r}
+source("setup.R")
+```
+
+## Vector Data
+
+### US Census spatial data with `tigris`
+
+Import counties again but this time rivers instead of roads for just Larimer County.
+
+### Species Occurrence data with `rgbif`
+
+Exercise: re-write the for loop to retrieve each species occurrences but using `purrr::map()` instead
+
+Then convert the data frame to a spatial `sf` points object.
+
+### SNOTEL data with `soilDB`
+
+### Watershed data with `nhdplusTools`
+
+Exercise: save all the above vector objects you created above (counties, rivers, occurences, snotel sites, and watersheds) to a single .RData file in the data/ folder.
+
+*[peer review: load in their .RData file and verify all the spatial objects are correct]*
+
+## Raster Data
+
+### Elevation data with `elevatr`
+
+Exercise: Follow instructions from the Week 1 spatial lesson to import elevation data for Colorado at a zoom level of 7 and write it to a .tif file in the data/ folder of this repo. Make sure to crop the raster layer to the extent of Colorado. Produce a quick plot to show your final raster object.
+
+### Landcover data
+
+Read in the .tif file in the data/ folder of the repo. Make note of the auxillary file .aux with the .tif file.
+
+Exercise: what is the purpose of this auxiliary file? How is this landcover raster data different from our elevation data?
