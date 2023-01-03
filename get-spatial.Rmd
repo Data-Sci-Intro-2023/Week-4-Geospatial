@@ -63,10 +63,10 @@ To experiment with point data (latitude/longitude), we are going to explore the 
 
 We are going to import occurrence data for a couple of charismatic Colorado species:
 
-|                                        |                                                 |                                                             |
-|:------------------:|:----------------------:|:--------------------------:|
-| ![Elk](elk.jpg){alt="Elk" width="173"} | ![Marmot](marmot.jpg){alt="Marmot" width="173"} | ![Salamander](salamander.jpg){alt="Salamander" width="215"} |
-|                  Elk                   |              Yellow-Bellied Marmot              |                  Western Tiger Salamander                   |
+|                                               |                                                        |                                                                    |
+|:---------------------------------------------:|:------------------------------------------------------:|:------------------------------------------------------------------:|
+| ![Elk](images/elk.jpg){alt="Elk" width="173"} | ![Marmot](images/marmot.jpg){alt="Marmot" width="173"} | ![Salamander](images/salamander.jpg){alt="Salamander" width="215"} |
+|                      Elk                      |                 Yellow-Bellied Marmot                  |                      Western Tiger Salamander                      |
 
 To pull occurrence data with this package you use the `occ_data()` function and give it a species name you want to retrieve data for. Since we want to perform this operation for three species, this is a good opportunity to work through iterative coding with for loops and the `purrr` package.
 
