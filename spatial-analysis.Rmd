@@ -2,7 +2,7 @@
 title: "Spatial Data Analysis"
 author: "Caitlin Mothes"
 date: "`r Sys.Date()`"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -22,16 +22,6 @@ source("setup.R")
 ## Load in spatial data
 
 To carry out today's lesson you will need to read in the data you saved to your 'data/' folder from the 'get-spatial' lesson:
-
-```{r eval=FALSE}
-#load in all your vector data
-load("data/{whatever you called this file}.RData")
-
-#read in the elevation and landcover rasters
-landcover <- terra::rast("data/{name of file}.tif")
-
-elevation <- terra::rast("data/{name of file}.tif")
-```
 
 ```{r key1}
 #load in all your vector data
@@ -68,9 +58,12 @@ Using what you learned in week one, check the CRS of the occurrences and rivers,
 ```{r}
 st_crs(rivers)
 st_crs(occ)
+
+#complete this operation
+occ <- st_transform()
 ```
 
-```{r key2}
+```{r echo=FALSE}
 
 # transform occ to NAD83 (recommended)
 occ <- st_transform(occ, crs = crs(rivers))
@@ -80,14 +73,23 @@ occ <- st_transform(occ, crs = crs(rivers))
 
 #### Exercise #1
 
-Our occurrence data set covers all of Colorado, but rivers are only for Larimer County. So, we have to first filter our points to Larimer County. Explore the use of `st_filter()` and use it to filter points that are found within the Larimer County polygon (which you can filter/index from your `counties` object). Call the new object 'occ_larimer' and make a quick plot of the filtered points.
+Our occurrence data set covers all of Colorado, but rivers are only for Larimer County. So, we have to first filter our points to Larimer County. Explore the use of `st_filter()` and use it to filter points that are found within the Larimer County polygon (which you can filter/index from your `counties` object). Call the new object`'occ_larimer` and make a quick plot of the filtered points.
 
-```{r key3}
+```{r}
+#complete this line of code
+occ_larimer <- st_filter()
+
+qtm(occ_larimer)
+```
+
+```{r echo=FALSE}
 
 occ_larimer <- st_filter(occ, counties[counties$NAME == "Larimer",])
 
 qtm(occ_larimer)
 ```
+
+<hr>
 
 Great, now we just have species occurrences within Larimer County.
 
@@ -112,15 +114,13 @@ Notice that the new column is more than just a numeric class, but a "units" clas
 str(occ_larimer)
 ```
 
-<hr>
-
 #### Exercise #2
 
 Cool, now you have the distance to the nearest river (in meters) for each individual species occurrence, but you want the average distance for each species. Using what you know of the `dplyr` functions, calculate the species average distance, then re-create the bar plot below with `ggplot2` to compare the averages:
 
-![](key/ex2_barplot.png)
+![](images/ex2_barplot.png)
 
-```{r key4}
+```{r echo=FALSE}
 occ_larimer %>% 
   group_by(Species) %>% 
   summarise(river_dist = mean(as.numeric(river_dist_m))) %>% 
@@ -133,6 +133,8 @@ occ_larimer %>%
 ```
 
 *Hint*: remember that the new distance column is a 'units' data type. You will need to coerce that to a numeric column in order to calculate the mean.
+
+<hr>
 
 ## Buffers
 
@@ -169,7 +171,11 @@ Create a new column in `occ_buff` that returns TRUE/FALSE if the buffer intersec
 
 *Hint*: make use of the `length()` function..we aren't interested at this point in how many rivers are within 100m of a species, just whether or not there was a river within the buffer or not.
 
-```{r key5}
+```{r}
+occ_buffer$river_100m <- #complete this line of code
+```
+
+```{r echo=FALSE}
 occ_buffer$river_100m <- lengths(river_intersections) > 0
 ```
 
@@ -181,12 +187,14 @@ occ_buffer %>%
   summarise(total_occ = n(), percent_river = (sum(river_100m == TRUE)/total_occ)*100)
 ```
 
-```{r key6}
+```{r echo=FALSE}
 occ_buffer %>% 
   st_drop_geometry() %>% #we use this function to treat the object as a dataframe
   group_by(Species) %>% 
   summarise(total_occ = n(), percent_river = (sum(river_100m == TRUE)/total_occ)*100)
 ```
+
+<hr>
 
 #### Reflection
 
@@ -223,6 +231,8 @@ freq(landcover) %>%
 ```
 
 </details>
+
+<br>
 
 Say we want to explore some habitat characteristics of our species of interest, and we are specifically interested in forest cover. Our first step is to create a new raster layer from our land cover layer representing percent forest cover. This will involve multiple operations, including raster reclassification and focal statistics. Specifically, say we want to calculate the average percentage of forest cover and urbanization within a 9x9 pixel moving window (remember since rasters are made up of pixels, the distances we use are dependent on the resolution of the raster).
 
@@ -277,9 +287,15 @@ Looks like the raster layer is in a different CRS. Let's reproject this so we ca
 forest_pct <- terra::project(forest_pct, occ)
 ```
 
-#### Exercise 5
+#### Exercise #4
 
 Write a line of code that checks whether or not these two objects have the same CRS.
+
+```{r echo=FALSE}
+crs(forest_pct) == crs(occ)
+```
+
+<hr>
 
 ## Raster Extract
 
@@ -289,13 +305,13 @@ Now we can use the `extract()` function to extract the raster pixel value at eac
 terra::extract(forest_pct, occ)
 ```
 
-#### Exercise 6
+#### Exercise #5
 
 Notice that this returns a 2 column data frame, with an ID for each feature (occurrence) and the extracted raster value in the second column. How would you write this line of `extract()` code to add a single column to the occurrence data set of just the forest percentage value?
 
 *Hint:* Use your knowledge of indexing!
 
-```{r key7}
+```{r echo=FALSE}
 occ$forest_pct <- terra::extract(forest_pct, vect(occ))[,2]
 ```
 
@@ -303,33 +319,43 @@ Then calculate the average forest cover for each species. On average, which spec
 
 Create a boxplot to compare the spread of values across species.
 
-```{r key8}
+```{r echo=FALSE}
 occ %>% 
   group_by(Species) %>% 
   summarise(avg_forest_pct = mean(forest_pct, na.rm = TRUE))
 ```
 
-```{r key9}
+```{r echo=FALSE}
 ggplot(occ, aes(Species, forest_pct)) +
   geom_boxplot()
   
 ```
 
+<hr>
+
 That's one way to use the `extract()` function. We can also extract raster values within polygons, and supply a function to summarize those raster values.
 
-#### Exercise 7
+#### Exercise #6
 
-Calculate the most common landcover type in each Colorado county, working through the following steps:
+Calculate the most common landcover type in each Colorado county, working through the following steps filling in the necessary code:
 
 Project the landcover raster to the CRS of the counties shapefile
 
 ```{r}
+landcover_prj <- terra::project()
+```
+
+```{r echo=FALSE}
 landcover_prj <- terra::project(landcover, counties)
 ```
 
 Add a new column to `counties` that is the most common land cover type, using the function `modal` within `extract()`.
 
 ```{r}
+counties$common_landcover <- terra::extract()
+```
+
+```{r echo=FALSE}
 counties$common_landcover <- terra::extract(landcover_prj, vect(counties), fun = "modal")[,2]
 ```
 
@@ -341,9 +367,13 @@ Since we have the associated auxillary file with this raster, we can extract met
 cats(landcover)
 ```
 
-Look at what class this function returns though. Coerce this into a data frame (there are multiple ways you could do this. Once you have have it as a data frame, use some `dplyr` operations to select just the value and land cover class columns, and remove all the empty rows (i.e., those without a landcover class). This should return a data frame of 17 rows.
+Look at what class this function returns though. Coerce this into a data frame (there are multiple ways you could do this. Once you have have it as a data frame, use some `dplyr` operations to select just the value and land cover class columns, and remove all the empty rows (i.e., those without a landcover class). This should return a data frame of 17 rows. Call it `nlcd_classes`.
 
 ```{r}
+nlcd_classes <- 
+```
+
+```{r echo=FALSE}
 nlcd_classes <- cats(landcover)[[1]] %>% 
   dplyr::select("value", nlcd_class = "NLCD Land Cover Class") %>% 
   filter(nlcd_class != "")
@@ -353,12 +383,16 @@ Now tie this to the `counties` data frame with `left_join()`, which will join tw
 
 ```{r}
 counties <- counties %>% 
+  left_join(nlcd_classes, by = ...)
+```
+
+```{r echo=FALSE}
+counties <- counties %>% 
   left_join(nlcd_classes, by = c("common_landcover" = "value"))
 ```
 
-We can now get some summary statistics on the most common land cover types per county.
-
-```{r}
+```{r echo=FALSE}
+#summary statistics on most common landcover types in CO
 counties %>% 
   st_drop_geometry() %>% #for ggplot, don't need geometry
   group_by(nlcd_class) %>% 
@@ -371,7 +405,7 @@ counties %>%
 
 Create a map of Colorado counties that is colored by the most common landcover type (using the class, not the raw value) in each county. The map can be interactive or static, but must include a legend.
 
-```{r}
+```{r echo=FALSE}
 tm_shape(counties)+
   tm_polygons("nlcd_class")
 ```

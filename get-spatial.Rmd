@@ -225,7 +225,7 @@ Site <- unique(snotel_sites$Site)[1]
 
 
 data <- fetchSCAN(site.code = Site, 
-                  year = 2020) %>%
+                  year = 2021) %>%
   # this returns a list for each variable, bind them to a single df
   bind_rows() %>%
   as_tibble() %>%
