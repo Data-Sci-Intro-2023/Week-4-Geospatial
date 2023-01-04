@@ -1,7 +1,7 @@
 Retrieve and Wrangle Spatial Data
 ================
 Caitlin Mothes
-2022-12-31
+2023-01-04
 
 In Week 1 you were introduced to working with geospatial data in R. This
 week you will dive deeper into wrangling, analyzing, and visualizing
@@ -32,16 +32,26 @@ tmap_mode("view")
 
 ## Vector Data
 
-### US Census spatial data with `tigris`
+### National park bounary
 
-Import the counties shapefile for Colorado again as you did in Week 1,
-along with linear water features for Larimer county (similar to how you
-imported roads, but check out the `linear_water()` function).
+Use your `getParkBoundary()` function you wrote in Week 3 to import the
+park boundary shape file for Rocky Mountain National Park (Park code is
+‘ROMO’).
 
 ``` r
-counties <- tigris::counties(state = "CO")
+rmnp <- getParkBoundary('ROMO')
+```
 
-linear_features <- linear_water(state = "CO", county = "Larimer")
+### US Census spatial data with `tigris`
+
+Complete the following functions to import the counties shapefile for
+Colorado again as you did in Week 1, along with linear water features
+for Larimer county.
+
+``` r
+counties <- tigris::counties()
+
+linear_features <- tigris::linear_water()
 ```
 
 This linear features file is pretty meaty. Inspect all the unique names
@@ -60,12 +70,6 @@ rivers <- linear_features %>%
   filter(FULLNAME, str_detect("Riv"))
 ```
 
-``` r
-#right way
-rivers <- linear_features %>% 
-  filter(str_detect(FULLNAME, "Riv"))
-```
-
 ### Species Occurrence data with [`rgbif`](https://docs.ropensci.org/rgbif/)
 
 To experiment with point data (latitude/longitude), we are going to
@@ -77,10 +81,10 @@ with over 2.2 billion records.
 We are going to import occurrence data for a couple of charismatic
 Colorado species:
 
-|                                             |                                                   |                                                           |
-|:-------------------------------------------:|:-------------------------------------------------:|:---------------------------------------------------------:|
-| <img src="elk.jpg" alt="Elk" width="173" /> | <img src="marmot.jpg" alt="Marmot" width="173" /> | <img src="salamander.jpg" alt="Salamander" width="215" /> |
-|                     Elk                     |               Yellow-Bellied Marmot               |                 Western Tiger Salamander                  |
+|                                                    |                                                          |                                                                  |
+|:--------------------------------------------------:|:--------------------------------------------------------:|:----------------------------------------------------------------:|
+| <img src="images/elk.jpg" alt="Elk" width="173" /> | <img src="images/marmot.jpg" alt="Marmot" width="173" /> | <img src="images/salamander.jpg" alt="Salamander" width="215" /> |
+|                        Elk                         |                  Yellow-Bellied Marmot                   |                     Western Tiger Salamander                     |
 
 To pull occurrence data with this package you use the `occ_data()`
 function and give it a species name you want to retrieve data for. Since
@@ -100,11 +104,13 @@ species <- c("Cervus canadensis", "Marmota flaviventris", "Ambystoma mavortium")
 common_name <- c("Elk", "Yellow-bellied Marmot", "Western Tiger Salamander")
 ```
 
+#### Exercise \#1
+
 The code below shows you the steps we want to import data for a single
 species. Convert this chunk of code to a for loop that iterates across
 each species scientific and common name.
 
-Tip for getting started: You will need to add a couple extra steps
+*Tip for getting started*: You will need to add a couple extra steps
 outside of the for loop, including first creating an empty list to hold
 each output of each iteration and after the for loop bind all elements
 of the list to a single data frame using `bind_rows()` .
@@ -137,45 +143,9 @@ occ <-
                   basisOfRecord) 
 ```
 
-``` r
-# full for loop answer
-
-occ <- vector("list", length = length(species)) 
-
-
-for(i in 1:length(occ)){
-  
-  occ[[i]] <-
-    occ_data(
-      scientificName = species[i],
-      hasCoordinate = TRUE,
-      geometry = st_bbox(counties),
-      limit = 2000
-    ) %>%
-    .$data #return just the data frame. The '.' symbolizes the previous function's output
-  
-  # add species name column as ID to use later
-  occ[[i]]$ID <- common_name[i]
-  
-  #clean by removing duplicate occurrences
-  occ[[i]] <-
-    occ[[i]] %>% distinct(decimalLatitude, decimalLongitude, .keep_all = TRUE) %>%
-    dplyr::select(Species = ID,
-           decimalLatitude,
-           decimalLongitude,
-           year,
-           month,
-           basisOfRecord) #only keep relevant variables
-  
-  
-  
-  print(i) # this prints each element once its finished so you can see the progress
-  
-}
-
-# Bind all data frames together
-occ <- bind_rows(occ)
-```
+Once you have your full data frame of occurrences for all three species,
+convert it to a spatial `sf` points object with the CRS set to 4326.
+Name the final object `occ`.
 
 **Note**: we only used a few filter functions here available with the
 `occ_data()` function, but there are many more worth exploring!
@@ -184,16 +154,10 @@ occ <- bind_rows(occ)
 ?occ_data
 ```
 
-Challenge: Re-write the for loop to retrieve each species occurrences
-but using `purrr::map()` instead
+#### Challenge!
 
-Once you have your full data frame of occurrences for all three species,
-convert it to a spatial `sf` points object with crs set to 4326.
-
-``` r
-occ <- occ %>% 
-  st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
-```
+Re-write the for loop to retrieve each species occurrences but using
+`purrr::map()` instead.
 
 ### SNOTEL data with [`soilDB`](http://ncss-tech.github.io/soilDB/)
 
@@ -210,31 +174,22 @@ installation, and you can bring it into your environment with `data()`
 data('SCAN_SNOTEL_metadata', package = 'soilDB')
 ```
 
-Exercise:
+#### Exercise \#2
 
 Filter this metadata to only the ‘SNOTEL’ sites and ‘Larimer’ county,
 convert it to a spatial `sf` object (set the CRS to `4326`, WGS 84), and
 name it ‘snotel_sites’.
 
-Question: How many SNOTEL sites are located in Colorado?
+How many SNOTEL sites are located in Colorado?
 
-``` r
- snotel_sites <-
-   SCAN_SNOTEL_metadata %>% 
-   filter(Network == "SNOTEL" & County == "Larimer") %>% 
-      st_as_sf(
-        coords = c("Longitude", "Latitude"),
-        crs = 4326
-      )
-```
+#### Exercise \#3
 
-Exercise: Below is the string of operations you would use to import data
-for a single SNOTEL site for the year 2021. Use `purrr::map()` to pull
-data for all unique SNOTEL sites in the `snotel_sites` object you just
-created. Explore the use of the various `map()` functions to return a
-single data frame for all site data. Then as a final step, use
-`left_join()` to join the snow depth data to the station data to get the
-coordinates for all the sites, and make it a spatial object.
+Below is the string of operations you would use to import data for a
+single SNOTEL site for the year 2021. Use `purrr::map()` to pull data
+for all unique SNOTEL sites in the `snotel_sites` object you just
+created. Coerce the data to a single data frame, then as a final step
+use `left_join()` to join the snow depth data to the station data to get
+the coordinates for all the sites, and make it a spatial object.
 
 ``` r
 #First Site ID
@@ -252,67 +207,45 @@ data <- fetchSCAN(site.code = Site,
   dplyr::select(-(Name:pedlabsampnum))
 ```
 
-``` r
-# answer
-snotel_data <- map(unique(snotel_sites$Site), function(x){
-  fetchSCAN(site.code = x, 
-                  year = 2021,
-                  timeseries = "Daily") %>%
-  # this returns a list for each variable, bind them to a single df
-  bind_rows() %>%
-  as_tibble() %>%
-  #filter just the snow depth site
-  filter(sensor.id == "SNWD.I") %>% 
-  #remove metadata columns
-  dplyr::select(-(Name:pedlabsampnum))
-})
+### Save Vector Data
 
-# tie to coordinates
-snotel_data <- bind_rows(snotel_data) %>%
-  left_join(snotel_sites, by = "Site") %>%
-  st_as_sf()
-```
+#### Exercise \#4
 
-### Watershed data with `nhdplusTools`
+Save all the vector objects you created above (counties, rivers,
+occurrences, snotel, and watersheds) to a single .RData file in the
+data/ folder. For the purposes of reproducibility and peer review, you
+should name this file ‘spatdat.RData’.
 
-Exercise: save all the above vector objects you created above (counties,
-rivers, occurences, snotel, and watersheds) to a single .RData file in
-the data/ folder.
+You will be graded on whether all spatial objects saved in this .RData
+are correct and match that in the ‘key/’ folder (*released for peer
+review*).
 
 ``` r
 save(counties, rivers, occ, snotel_data, file = "data/spatdat.RData")
 ```
 
-*\[peer review: load in their .RData file and verify all the spatial
-objects are correct\]*
-
 ## Raster Data
 
 ### Elevation data with `elevatr`
 
-Exercise: Follow instructions from the Week 1 spatial lesson to import
-elevation data for Colorado at a zoom level of 7 and write it to a .tif
-file in the data/ folder of this repo. Make sure to crop the raster
-layer to the extent of Colorado, and give it the name “Elevation”.
-Produce a quick plot to show your final raster object.
+#### Exercise \#5
 
-``` r
-elevation <- get_elev_raster(counties, z = 7)
-
-elevation_co <- rast(elevation) %>% 
-  crop(ext(counties))
-
-names(elevation_co) <- "Elevation"
-
-qtm(elevation_co)
-
-writeRaster(elevation_co, "data/elevation.tif")
-```
+Follow instructions from the Week 1 spatial lesson to import elevation
+data for Colorado at a zoom level of 7 and write it to a .tif file in
+the data/ folder of this repo. **Name the file ‘elevation.tif’**. Make
+sure to crop the raster layer to the extent of Colorado, and give it the
+name “Elevation”. Produce a quick plot to show your final raster object.
 
 ### Landcover data
 
-Read in the .tif file in the data/ folder of the repo. Make note of the
-auxillary file .aux.xml with the .tif file.
+Read in the NLCD_CO.tif file in the data/ folder of the repo. Make note
+of the auxillary file .aux.xml with the .tif file. This raster
+represents National Land Cover Database (NLCD) 2019 CONUS landcover data
+downloaded from the [MRLC
+website](https://www.mrlc.gov/data/nlcd-2019-land-cover-conus) and
+aggregated to \~1km resolution.
 
-Exercise: what is the purpose of this auxiliary file? How is this
-landcover raster data different from our elevation data?
+#### Exercise \#6
+
+What is the purpose of this auxiliary file? How is this landcover raster
+data different from our elevation data?
