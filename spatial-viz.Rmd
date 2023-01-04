@@ -9,3 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Static maps
+
+## Interactive Maps
+
+## Multi-layers
+
+## Faceting
+
+## Animation

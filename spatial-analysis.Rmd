@@ -321,27 +321,27 @@ That's one way to use the `extract()` function. We can also extract raster value
 
 Calculate the most common landcover type in each Colorado county, working through the following steps:
 
-1.  Project the landcover raster to the CRS of the counties shapefile
+Project the landcover raster to the CRS of the counties shapefile
 
 ```{r}
 landcover_prj <- terra::project(landcover, counties)
 ```
 
-2.  Add a new column to `counties` that is the most common land cover type, using the function `modal` within `extract()`.
+Add a new column to `counties` that is the most common land cover type, using the function `modal` within `extract()`.
 
 ```{r}
 counties$common_landcover <- terra::extract(landcover_prj, vect(counties), fun = "modal")[,2]
 ```
 
-Notice however that this returns the raw raster values, which are not informative to use without knowing the associated landcover classes.
+Notice however that this returns the raw raster values, which are not informative to us without knowing the associated landcover classes.
 
 Since we have the associated auxillary file with this raster, we can extract metadata to get the value/class pairs with the `cats()` function.
 
 ```{r}
-cats(landcover)[[1]]
+cats(landcover)
 ```
 
-This returns a single element list that is a data frame with a bunch of information. We just want to keep 'value' and 'NLCD Land Cover Class", and remove all the empty classes. We have to first index the first element of the list to operate on just the data frame, then we can apply some `dplyr` functions.
+Look at what class this function returns though. Coerce this into a data frame (there are multiple ways you could do this. Once you have have it as a data frame, use some `dplyr` operations to select just the value and land cover class columns, and remove all the empty rows (i.e., those without a landcover class). This should return a data frame of 17 rows.
 
 ```{r}
 nlcd_classes <- cats(landcover)[[1]] %>% 
@@ -349,13 +349,7 @@ nlcd_classes <- cats(landcover)[[1]] %>%
   filter(nlcd_class != "")
 ```
 
-Cool, now we can tie this to our counties data frame once we have the most common land cover value calculated with `extract`
-
-```{r}
-counties$common_landcover <- terra::extract(landcover_prj, vect(counties), fun = "modal")[,2]
-```
-
-This join is different from our others because the variable we want to join by has a different column name in each data set, but we can specify this within the `by =` argument like this:
+Now tie this to the `counties` data frame with `left_join()`, which will join two data frames by a common variable. In this case, your common variable is the raw raster value. Look at the documentation for `left_join()` and how you use the `by =` argument to complete this step.
 
 ```{r}
 counties <- counties %>% 
@@ -375,7 +369,7 @@ counties %>%
   coord_flip()
 ```
 
-And map it out by county:
+Create a map of Colorado counties that is colored by the most common landcover type (using the class, not the raw value) in each county. The map can be interactive or static, but must include a legend.
 
 ```{r}
 tm_shape(counties)+
