@@ -311,6 +311,8 @@ elk_occ <- occ %>%
   dplyr::filter(Species == "Elk", !is.na(year))
 ```
 
+### Animation with `movevis`
+
 ## Interactive Mapping
 
 Let's go back to interactive mode and walk through how to further use and customize interactive maps.
