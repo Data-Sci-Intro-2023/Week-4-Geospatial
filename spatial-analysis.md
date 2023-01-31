@@ -1,7 +1,7 @@
 Spatial Data Analysis
 ================
 Caitlin Mothes
-2023-01-04
+2023-01-31
 
 In the first lesson this week you were exposed to various databases you
 can pull spatial data from and worked through importing, wrangling, and
@@ -71,21 +71,14 @@ st_crs(occ)
 occ <- st_transform()
 ```
 
-#### Exercise \#1
+### Exercise \#1
 
 Our occurrence data set covers all of Colorado, but rivers are only for
 Larimer County. So, we have to first filter our points to Larimer
 County. Explore the use of `st_filter()` and use it to filter points
 that are found within the Larimer County polygon (which you can
 filter/index from your `counties` object). Call the new
-object`'occ_larimer` and make a quick plot of the filtered points.
-
-``` r
-#complete this line of code
-occ_larimer <- st_filter()
-
-qtm(occ_larimer)
-```
+object`'occ_larimer` and include a quick plot of the filtered points.
 
 <hr>
 
@@ -122,19 +115,20 @@ Notice that the new column is more than just a numeric class, but a
 str(occ_larimer)
 ```
 
-#### Exercise \#2
+### Exercise \#2
 
 Cool, now you have the distance to the nearest river (in meters) for
 each individual species occurrence, but you want the average distance
 for each species. Using what you know of the `dplyr` functions,
 calculate the species average distance, then re-create the bar plot
-below with `ggplot2` to compare the averages:
+below with `ggplot2` to compare the averages (feel free to add more
+customization!):
 
 ![](images/ex2_barplot.png)
 
-*Hint*: remember that the new distance column is a ‘units’ data type.
-You will need to coerce that to a numeric column in order to calculate
-the mean.
+*Hint*: remember that the new distance column is a ‘units’ data type and
+may throw an error. You will need to coerce that data type in order to
+complete the operation.
 
 <hr>
 
@@ -184,18 +178,15 @@ If we inspect this object, we see it is a list of the same length as our
 intersections) or a list of index numbers for the river features that do
 intersect that buffer.
 
-#### Exercise \#3
+### Exercise \#3
 
 Create a new column in `occ_buff` that returns TRUE/FALSE if the buffer
 intersects with a river.
 
 *Hint*: make use of the `length()` function..we aren’t interested at
-this point in how many rivers are within 100m of a species, just whether
-or not there was a river within the buffer or not.
-
-``` r
-occ_buffer$river_100m <- #complete this line of code
-```
+this point in how many river features are within 100m of a species
+occurrence, just whether or not there was a river within the buffer or
+not.
 
 Second, calculate what percentage of occurrences are within 100 m of a
 river for each species using `dplyr` operations. The below code will get
@@ -272,7 +263,8 @@ representing just forest/non-forest pixels.
 
 Since rasters are technically matrices, we can index and change values
 using matrix operations. Given this particular raster uses character
-names associated with values, we can index by those names.
+names associated with values (thanks to the .aux file!), we can index by
+those names.
 
 ``` r
 #first assign landcover to a new object name so we can manipulate it while keeping the origian
@@ -330,19 +322,12 @@ crs(forest_pct)
 st_crs(occ)
 ```
 
-Looks like the raster layer is in a different CRS. Let’s reproject this
-so we can use it with our vector data (which are all in NAD83). We can
-project raster data to a new CRS with the `project()` function from
-`terra`.
+### Exercise \#4
 
-``` r
-forest_pct <- terra::project(forest_pct, occ)
-```
-
-#### Exercise \#4
-
-Write a line of code that checks whether or not these two objects have
-the same CRS.
+Looks like the raster layer is in a different CRS. Reproject this so we
+can use it with our vector data (which are all in NAD83) using the
+`project()` function from `terra`, and write a line of code that checks
+whether or not the new object and the `occ` object have the same CRS
 
 <hr>
 
@@ -355,7 +340,7 @@ value at each occurrence.
 terra::extract(forest_pct, occ)
 ```
 
-#### Exercise \#5
+### Exercise \#5
 
 Notice that this returns a 2 column data frame, with an ID for each
 feature (occurrence) and the extracted raster value in the second
@@ -376,10 +361,10 @@ That’s one way to use the `extract()` function. We can also extract
 raster values within polygons, and supply a function to summarize those
 raster values.
 
-#### Exercise \#6
+### Exercise \#6
 
 Calculate the most common landcover type in each Colorado county,
-working through the following steps filling in the necessary code:
+working through the following steps **filling in the necessary code**:
 
 Project the landcover raster to the CRS of the counties shapefile
 
@@ -406,47 +391,17 @@ cats(landcover)
 ```
 
 Look at what class this function returns though. Coerce this into a data
-frame (there are multiple ways you could do this. Once you have have it
+frame (there are multiple ways you could do this). Once you have have it
 as a data frame, use some `dplyr` operations to select just the value
 and land cover class columns, and remove all the empty rows (i.e., those
 without a landcover class). This should return a data frame of 17 rows.
 Call it `nlcd_classes`.
 
-``` r
-nlcd_classes <- 
-```
-
-Now tie this to the `counties` data frame with `left_join()`, which will
-join two data frames by a common variable. In this case, your common
-variable is the raw raster value. Look at the documentation for
+Then tie `nlcd_classes` to the `counties` data frame with `left_join()`,
+which will join two data frames by a common variable. In this case, your
+common variable is the raw raster value. Look at the documentation for
 `left_join()` and how you use the `by =` argument to complete this step.
 
-``` r
-counties <- counties %>% 
-  left_join(nlcd_classes, by = ...)
-```
-
-Create a map of Colorado counties that is colored by the most common
-landcover type (using the class, not the raw value) in each county. The
-map can be interactive or static, but must include a legend.
-
-<hr>
-
-## Additional Exercises?
-
-Using watershed data from lesson 1 this week
-
-1.  For a single county {suggest which one} that consists of multiple
-    watersheds, calculate the percent area of that county that each
-    watershed covers. Which watershed covers the largest area of {}
-    county?
-
-    Note that since we are wanting to calculate the actual area of
-    intersection (not just whether or not an intersection exists as
-    before) you will need to use the `st_intersection()` function.
-
-2.  Calculate the most common landcover type in each watershed and
-    create a map of it.
-
-3.  Calculate the percentage of each species’ occurrences that are
-    associated with developed landcover types.
+Finally, create a map of Colorado counties that is colored by the most
+common landcover type (using the class, not the raw value) in each
+county. The map can be interactive or static, but must include a legend.

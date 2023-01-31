@@ -1,7 +1,7 @@
 Retrieve and Wrangle Spatial Data
 ================
 Caitlin Mothes
-2023-01-04
+2023-01-31
 
 In Week 1 you were introduced to working with geospatial data in R. This
 week you will dive deeper into wrangling, analyzing, and visualizing
@@ -17,8 +17,6 @@ list:
 
 - `soilDB`
 
-- `nhdplusTools`
-
 ``` r
 source("setup.R")
 ```
@@ -32,26 +30,15 @@ tmap_mode("view")
 
 ## Vector Data
 
-### National park bounary
-
-Use your `getParkBoundary()` function you wrote in Week 3 to import the
-park boundary shape file for Rocky Mountain National Park (Park code is
-‘ROMO’).
-
-``` r
-rmnp <- getParkBoundary('ROMO')
-```
-
 ### US Census spatial data with `tigris`
 
-Complete the following functions to import the counties shapefile for
-Colorado again as you did in Week 1, along with linear water features
-for Larimer county.
+Import the counties shapefile for Colorado again as you did in Week 1,
+along with linear water features for Larimer county.
 
 ``` r
-counties <- tigris::counties()
+counties <- tigris::counties(state = "CO")
 
-linear_features <- tigris::linear_water()
+linear_features <- linear_water(state = "CO", county = "Larimer")
 ```
 
 This linear features file is pretty meaty. Inspect all the unique names
@@ -61,13 +48,11 @@ end of their name. For working with character strings, the `stringr`
 package is extremely helpful and a member of the Tidyverse.
 
 To filter rows that have a specific character string, you can use
-`str_detect()` within `filter()`. Fix the following code so that this
-operation works.
+`str_detect()` within `filter()`.
 
 ``` r
-#wrong way
 rivers <- linear_features %>% 
-  filter(FULLNAME, str_detect("Riv"))
+  filter(str_detect(FULLNAME, "Riv"))
 ```
 
 ### Species Occurrence data with [`rgbif`](https://docs.ropensci.org/rgbif/)
@@ -89,8 +74,8 @@ Colorado species:
 To pull occurrence data with this package you use the `occ_data()`
 function and give it a species name you want to retrieve data for. Since
 we want to perform this operation for three species, this is a good
-opportunity to work through iterative coding with for loops and the
-`purrr` package.
+opportunity to work through the iterative coding lessons you learned
+last week.
 
 We first need to create a string of species scientific names to use in
 the download function, and create a second string with their associated
@@ -104,7 +89,7 @@ species <- c("Cervus canadensis", "Marmota flaviventris", "Ambystoma mavortium")
 common_name <- c("Elk", "Yellow-bellied Marmot", "Western Tiger Salamander")
 ```
 
-#### Exercise \#1
+### Exercise \#1
 
 The code below shows you the steps we want to import data for a single
 species. Convert this chunk of code to a for loop that iterates across
@@ -174,7 +159,7 @@ installation, and you can bring it into your environment with `data()`
 data('SCAN_SNOTEL_metadata', package = 'soilDB')
 ```
 
-#### Exercise \#2
+### Exercise \#2
 
 Filter this metadata to only the ‘SNOTEL’ sites and ‘Larimer’ county,
 convert it to a spatial `sf` object (set the CRS to `4326`, WGS 84), and
@@ -182,14 +167,14 @@ name it ‘snotel_sites’.
 
 How many SNOTEL sites are located in Colorado?
 
-#### Exercise \#3
+### Exercise \#3
 
 Below is the string of operations you would use to import data for a
-single SNOTEL site for the year 2021. Use `purrr::map()` to pull data
-for all unique SNOTEL sites in the `snotel_sites` object you just
-created. Coerce the data to a single data frame, then as a final step
-use `left_join()` to join the snow depth data to the station data to get
-the coordinates for all the sites, and make it a spatial object.
+single SNOTEL site for the years 2020 to 2022. Use `purrr::map()` to
+pull data for all unique SNOTEL sites in the `snotel_sites` object you
+just created. Coerce the data to a single data frame, then as a final
+step use `left_join()` to join the snow depth data to the station data
+to get the coordinates for all the sites, and make it a spatial object.
 
 ``` r
 #First Site ID
@@ -197,7 +182,7 @@ Site <- unique(snotel_sites$Site)[1]
 
 
 data <- fetchSCAN(site.code = Site, 
-                  year = 2020) %>%
+                  year = 2020:2022) %>%
   # this returns a list for each variable, bind them to a single df
   bind_rows() %>%
   as_tibble() %>%
@@ -209,16 +194,10 @@ data <- fetchSCAN(site.code = Site,
 
 ### Save Vector Data
 
-#### Exercise \#4
-
 Save all the vector objects you created above (counties, rivers,
-occurrences, snotel, and watersheds) to a single .RData file in the
-data/ folder. For the purposes of reproducibility and peer review, you
-should name this file ‘spatdat.RData’.
-
-You will be graded on whether all spatial objects saved in this .RData
-are correct and match that in the ‘key/’ folder (*released for peer
-review*).
+occurrences, and snotel) to a single .RData file in the data/ folder.
+For the purposes of reproducibility and peer review, you should name
+this file ‘spatdat.RData’.
 
 ``` r
 save(counties, rivers, occ, snotel_data, file = "data/spatdat.RData")
@@ -228,13 +207,14 @@ save(counties, rivers, occ, snotel_data, file = "data/spatdat.RData")
 
 ### Elevation data with `elevatr`
 
-#### Exercise \#5
+### Exercise \#4
 
 Follow instructions from the Week 1 spatial lesson to import elevation
 data for Colorado at a zoom level of 7 and write it to a .tif file in
 the data/ folder of this repo. **Name the file ‘elevation.tif’**. Make
 sure to crop the raster layer to the extent of Colorado, and give it the
-name “Elevation”. Produce a quick plot to show your final raster object.
+name “Elevation”. **Produce a quick plot to show your final raster
+object**.
 
 ### Landcover data
 
@@ -245,7 +225,7 @@ downloaded from the [MRLC
 website](https://www.mrlc.gov/data/nlcd-2019-land-cover-conus) and
 aggregated to \~1km resolution.
 
-#### Exercise \#6
+### Exercise \#5
 
 What is the purpose of this auxiliary file? How is this landcover raster
 data different from our elevation data?
