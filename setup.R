@@ -25,7 +25,7 @@ packages <- c('tidyverse',
               'rgdal',
               'rgbif',
               'soilDB',
-              'nhdplusTools')
+              'plotly')
 
 packageLoad(packages)
 

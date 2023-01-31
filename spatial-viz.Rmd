@@ -285,33 +285,32 @@ Let's make an animation showing the change in snow depth at each of our SNOTEL s
 First filter the data to water year 2021:
 
 ```{r}
-snotel21 <- snotel_data %>% 
-  filter(water_year == "2021")
+snotel_filtered <- snotel_data %>% 
+  filter(Date >= "2022-10-01")
 ```
 
-We can make an animation with `tmap_animation()`. To do so we need to create a `tmap` object first, and must set the `nrow` and `ncol` to 1 within `tm_facets()`. We also set `free.coords = FALSE` which will keep the zoom level of the map constant across animation frames. We then supply this object and other animation settings to `tmap_animation()`.
+We can make an animation with `tmap_animation()`. To do so we need to create a `tmap` object first, and must set the `nrow` and `ncol` to 1 within `tm_facets()`. We also set `free.coords = FALSE` which will keep the zoom level of the map constant across animation frames. We then supply this object and other animation settings to `tmap_animation()`.\
 
 ```{r}
-m1 <- tm_shape() +
-  tm_polygons() +
-  tm_shape(elk_occ) +
-  tm_symbols(col = "red", alpha = 0.8) +
-  tm_facets(along = "year", free.coords = FALSE, nrow = 1, ncol = 1)
+larimer <- counties %>% 
+  filter(NAME == "Larimer")
 
+elevation_larimer <- terra::crop(elevation, larimer)
+
+ m1 <- tm_shape(elevation_larimer)+
+   tm_raster()+
+   tm_shape(snotel_filtered) +
+  tm_bubbles(size = "value")+
+   tm_layout(legend.position = c("right", "bottom"))+
+  tm_facets(along = "Date", free.coords = FALSE, free.scales.symbol.size = FALSE,
+            nrow = 1, ncol = 1)
 
 ```
 
 ```{r}
 #| eval: false
-tmap_animation(m1, filename = "data/elk_occ.gif", width = 1200, height = 600, delay = 80)
+tmap_animation(m1, filename = "data/snotel.gif", width = 1200, height = 600, delay = 15)
 ```
-
-```{r}
-elk_occ <- occ %>% 
-  dplyr::filter(Species == "Elk", !is.na(year))
-```
-
-### Animation with `movevis`
 
 ## Interactive Mapping
 
@@ -321,50 +320,65 @@ Let's go back to interactive mode and walk through how to further use and custom
 tmap_mode("view")
 ```
 
-To learn the ins and outs of interactive mapping, we are going to make a map with three layers: our elevation raster, Rocky Mountain National Park boundary, and species occurrences.
+From the previous maps it looks like some of the highest densities of species occurrences are in the Rocky Mountain National Park region. Lets make an interactive map, and add the park boundary to see if this is true.
+
+Note the `getBoundary()` script in this repo that contains a function to pull park boundary shapefiles (using the same IRMA API you used in Week 3!). Inspect that script and `source()` it into your session so you can use it to import the boundary shapefile for Rocky Mountain National Park (ROMO).
 
 ```{r}
-urban <- st_read("data/urban_areas.shp")
-
-elevation <- terra::rast("data/elevation_1km.tif") %>% 
-  terra::project(vect(occ)) %>% 
-  terra::crop(vect(occ))
+ROMO <- getParkBoundary(park = 'ROMO')
 ```
 
-Now lets add all of them to our interactive map. Note that `alpha` controls the transparency/opacity of layers, with a range of 0 (totally transparent) to 1 (non-transparent).
+Now lets make an interactive map of both the park boundary and the species occurrences.Note that `alpha` controls the transparency/opacity of layers, with a range of 0 (totally transparent) to 1 (non-transparent).
 
 ```{r}
-tm_shape(park) +
-  tm_polygons(alpha = 0, title = "Rocky Mountain National Park") +
+tm_shape(ROMO) +
+  tm_polygons(alpha = 0.5, title = "Rocky Mountain National Park") +
 tm_shape(occ) +
   tm_dots(col = "Species",
-             size = 0.1,
-            alpha = 0.5,
+            alpha = 0.75,
              palette = "Dark2",
-             title = "Species Occurrences") +
-
-tm_shape(elevation) +
-  tm_raster(alpha = 0.8, title = "Elevation (m)")
+             title = "Species Occurrences")
 ```
+
+There definitely appears to be a lot of occurrences inside the park, but we also see a dense area of elk sightings in Estes Park just outside the park boundary.
 
 To improve the user experience, we can customize what content displays in the pop-up windows. Let's add some information associated with each species' occurrence.
 
 ```{r}
-tm_shape(occ) +
+tm_shape(ROMO) +
+  tm_polygons(alpha = 0.5, title = "Rocky Mountain National Park") +
+  tm_shape(occ) +
   tm_dots(
     col = "Species",
-    size = 0.1,
+    palette = "Dark2",
+    title = "Species Occurrences",
+    popup.vars = c("Record Type" = "basisOfRecord",
+                   "Year" = "year",
+                   "Month" = "month")
+  )
+```
+
+## Exercise #1
+
+Use `extract` from the `terra` package to create a new column in the `occ` dataset that includes the elevation for each occurrence. Then edit the interactive map you just made above but add 'Elevation' to the popup window.
+
+```{r}
+occ$elevation <- extract(elevation, occ)[,2]
+
+tm_shape(ROMO) +
+  tm_polygons(alpha = 0.5, title = "Rocky Mountain National Park") +
+  tm_shape(occ) +
+  tm_dots(
+    col = "Species",
     palette = "Dark2",
     title = "Species Occurrences",
     popup.vars = c("Record Type" = "basisOfRecord",
                    "Year" = "year",
                    "Month" = "month",
-                   "Elevation (m)" = "elevation")
-  ) +
-  tm_shape(urban) +
-  tm_polygons(alpha = 0.7, title = "Urban Areas") +
-  tm_shape(elevation) +
-  tm_raster(alpha = 0.8, title = "Elevation (m)")
+                   "Elevation" = "elevation")
+  )
+
+
 ```
 
 ## More visualization packages to explore
@@ -373,10 +387,106 @@ So far we have used `ggplot2` and `tmap` extensively. It is important to note th
 
 ### `plotly`
 
-The `plotly` package allows you to create interactive charts.
+In Week 3 you used `plotly` alongside `ggplot` to create interactive charts. You can also use `plotly` on its own to generate interactive charts (with some more functionality).
 
-For example, here is a plot showing show depth for the year 2020 for each SNOTEL site in Larimer County.
+For example, here is a plot showing show depth across time for each SNOTEL site in Larimer County. Notice that you can turn sites on/off by clicking its name in the legend.
 
-## Exercise
+```{r}
+plot_ly(snotel_data) %>% 
+  add_trace(x =snotel_data$Date,
+            y = snotel_data$value,
+            name = ~snotel_data$Name,
+            linetype = ~snotel_data$Name,
+            type = "scatter",
+            mode = "lines+markers") %>% 
+  layout(yaxis = list(title = "Snow Depth (in)"))
+```
+
+## Exercise #2
+
+Use the `unit_visitation()` function you created in Week 3 to import visitation data for Death Valley (DEVA), Joshua Tree (JOTR), Mojave (MOJA), Bryce Canyon (BRCA) and Zion (ZION) parks from 1980 to 2021. Second, use the `getBoundary()` function to import the park boundaries fro DEVA, JOTR, and MOJA.
+
+First, create an interactive time series plot of visitation for all three parks (in the same plot) from 1980 - 2021. Show the total number of Recreation Visitors per year in each park.
+
+```{r}
+#pull data
+unit_visitation <- function(
+                          units, 
+                          startMonth = 1,
+                          startYear,
+                          endMonth = 12,
+                          endYear) {
+  
+
+  #base URL call
+  call <- "https://irmaservices.nps.gov/v3/rest/stats"
+  
+  units <- paste0(units, collapse = ",")
+    
+    dat <- httr::GET(paste0(call, "/visitation?unitCodes=", units, "&startMonth=",
+                             startMonth, "&startYear=", startYear, "&endMonth=",
+                             endMonth, "&endYear=", endYear))
+    
+    
+    # convert content to text
+    dat_text <- httr::content(dat, "text", encoding = "UTF-8")
+    
+    #parse data in JSON
+    dat_json <- jsonlite::fromJSON(dat_text, flatten = TRUE)
+    
+    #convert items to data.frame
+    final_df <- as_tibble(dat_json)
+
+  
+  return(final_df)
+
+
+}
+
+
+visitation <-
+  unit_visitation(
+    units = c("DEVA", "JOTR", "MOJA", "BRCA", "ZION"),
+    startYear = 1980,
+    endYear = 2021
+  )
+
+
+park_boundaries <- getParkBoundary(park = c("DEVA", "JOTR", "MOJA", "BRCA", "ZION"))
+```
+
+```{r}
+annual_visitation <- visitation %>% 
+  group_by(UnitCode, Year) %>% 
+  summarise(total=sum(RecreationVisitors)) 
+
+plot_ly(annual_vistiation) %>% 
+  add_trace(x = annual_visitation$Year,
+            y = annual_visitation$total,
+            name = ~annual_visitation$UnitCode,
+            linetype = ~annual_visitation$UnitCode,
+            type = "scatter",
+            mode = "lines+markers") %>% 
+  layout(yaxis = list(title = "Total Annual Recreation Visitors"))
+```
+
+Second, join your visitation data to the park boundary data and create a map where each park polygon is colored by their visitation data for the year 2021. Use a continuous color scale and add a legend (this can be interactive or static).
+
+```{r}
+
+tmap_mode("view")
+
+annual_visitation %>%
+  filter(Year == 2021) %>% 
+  left_join(park_boundaries, by = c("UnitCode" = "UNIT_CODE")) %>% 
+  st_as_sf() %>% 
+  qtm(fill = "total")
+  
+
+
+
+```
+
+## Exercise #3
 
 Using what you learned today and the data sets imported/created so far (or your own data!!) create your own unique spatial data visualization. It can be static, interactive, animated, whatever interests you the most and puts your visualization skills to the test.

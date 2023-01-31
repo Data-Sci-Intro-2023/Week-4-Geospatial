@@ -17,8 +17,6 @@ Start off by updating your setup.R script (you can just copy it over from your p
 
 -   `soilDB`
 
--   `nhdplusTools`
-
 ```{r}
 source("setup.R")
 ```
@@ -31,7 +29,7 @@ tmap_mode("view")
 
 ## Vector Data
 
-### National park bounary
+### National park boundary
 
 Use your `getParkBoundary()` function you wrote in Week 3 to import the park boundary shape file for Rocky Mountain National Park (Park code is 'ROMO').
 
@@ -41,17 +39,10 @@ rmnp <- getParkBoundary('ROMO')
 
 ### US Census spatial data with `tigris`
 
-Complete the following functions to import the counties shapefile for Colorado again as you did in Week 1, along with linear water features for Larimer county.
+Import the counties shapefile for Colorado again as you did in Week 1, along with linear water features for Larimer county.
 
 ```{r}
-counties <- tigris::counties()
 
-linear_features <- tigris::linear_water()
-
-```
-
-```{r echo=FALSE}
-#answer
 counties <- tigris::counties(state = "CO")
 
 linear_features <- linear_water(state = "CO", county = "Larimer")
@@ -60,16 +51,9 @@ linear_features <- linear_water(state = "CO", county = "Larimer")
 
 This linear features file is pretty meaty. Inspect all the unique names for the features, what naming pattern do you notice? Let's filter this data set to only major rivers in the county, which all have 'Riv' at the end of their name. For working with character strings, the `stringr` package is extremely helpful and a member of the Tidyverse.
 
-To filter rows that have a specific character string, you can use `str_detect()` within `filter()`. Fix the following code so that this operation works.
+To filter rows that have a specific character string, you can use `str_detect()` within `filter()`.
 
 ```{r}
-#wrong way
-rivers <- linear_features %>% 
-  filter(FULLNAME, str_detect("Riv"))
-```
-
-```{r echo=FALSE}
-#right way
 rivers <- linear_features %>% 
   filter(str_detect(FULLNAME, "Riv"))
 ```
@@ -85,7 +69,7 @@ We are going to import occurrence data for a couple of charismatic Colorado spec
 | ![Elk](images/elk.jpg){alt="Elk" width="173"} | ![Marmot](images/marmot.jpg){alt="Marmot" width="173"} | ![Salamander](images/salamander.jpg){alt="Salamander" width="215"} |
 |                      Elk                      |                 Yellow-Bellied Marmot                  |                      Western Tiger Salamander                      |
 
-To pull occurrence data with this package you use the `occ_data()` function and give it a species name you want to retrieve data for. Since we want to perform this operation for three species, this is a good opportunity to work through iterative coding with for loops and the `purrr` package.
+To pull occurrence data with this package you use the `occ_data()` function and give it a species name you want to retrieve data for. Since we want to perform this operation for three species, this is a good opportunity to work through the iterative coding lessons you learned last week.
 
 We first need to create a string of species scientific names to use in the download function, and create a second string with their associated common names (order matters, make sure the two strings match).
 
@@ -217,7 +201,7 @@ How many SNOTEL sites are located in Colorado?
 
 #### Exercise #3 {style="color: red"}
 
-Below is the string of operations you would use to import data for a single SNOTEL site for the year 2021. Use `purrr::map()` to pull data for all unique SNOTEL sites in the `snotel_sites` object you just created. Coerce the data to a single data frame, then as a final step use `left_join()` to join the snow depth data to the station data to get the coordinates for all the sites, and make it a spatial object.
+Below is the string of operations you would use to import data for a single SNOTEL site for the years 2020 to 2022. Use `purrr::map()` to pull data for all unique SNOTEL sites in the `snotel_sites` object you just created. Coerce the data to a single data frame, then as a final step use `left_join()` to join the snow depth data to the station data to get the coordinates for all the sites, and make it a spatial object.
 
 ```{r}
 #First Site ID
@@ -225,7 +209,7 @@ Site <- unique(snotel_sites$Site)[1]
 
 
 data <- fetchSCAN(site.code = Site, 
-                  year = 2021) %>%
+                  year = 2020:2022) %>%
   # this returns a list for each variable, bind them to a single df
   bind_rows() %>%
   as_tibble() %>%
@@ -239,7 +223,7 @@ data <- fetchSCAN(site.code = Site,
 # answer
 snotel_data <- map(unique(snotel_sites$Site), function(x){
   fetchSCAN(site.code = x, 
-                  year = 2021,
+                  year = 2020:2022,
                   timeseries = "Daily") %>%
   # this returns a list for each variable, bind them to a single df
   bind_rows() %>%
@@ -258,11 +242,7 @@ snotel_data <- bind_rows(snotel_data) %>%
 
 ### Save Vector Data
 
-#### Exercise #4 {style="color:red"}
-
-Save all the vector objects you created above (counties, rivers, occurrences, snotel, and watersheds) to a single .RData file in the data/ folder. For the purposes of reproducibility and peer review, you should name this file 'spatdat.RData'.
-
-You will be graded on whether all spatial objects saved in this .RData are correct and match that in the 'key/' folder (*released for peer review*).
+Save all the vector objects you created above (counties, rivers, occurrences, and snotel) to a single .RData file in the data/ folder. For the purposes of reproducibility and peer review, you should name this file 'spatdat.RData'.
 
 ```{r}
 save(counties, rivers, occ, snotel_data, file = "data/spatdat.RData")
@@ -272,9 +252,9 @@ save(counties, rivers, occ, snotel_data, file = "data/spatdat.RData")
 
 ### Elevation data with `elevatr`
 
-#### Exercise #5 {style="color: red"}
+#### Exercise #4 {style="color: red"}
 
-Follow instructions from the Week 1 spatial lesson to import elevation data for Colorado at a zoom level of 7 and write it to a .tif file in the data/ folder of this repo. **Name the file 'elevation.tif'**. Make sure to crop the raster layer to the extent of Colorado, and give it the name "Elevation". Produce a quick plot to show your final raster object.
+Follow instructions from the Week 1 spatial lesson to import elevation data for Colorado at a zoom level of 7 and write it to a .tif file in the data/ folder of this repo. **Name the file 'elevation.tif'**. Make sure to crop the raster layer to the extent of Colorado, and give it the name "Elevation". **Produce a quick plot to show your final raster object**.
 
 ```{r echo=FALSE}
 elevation <- get_elev_raster(counties, z = 7)
@@ -293,6 +273,6 @@ writeRaster(elevation_co, "data/elevation.tif")
 
 Read in the NLCD_CO.tif file in the data/ folder of the repo. Make note of the auxillary file .aux.xml with the .tif file. This raster represents National Land Cover Database (NLCD) 2019 CONUS landcover data downloaded from the [MRLC website](https://www.mrlc.gov/data/nlcd-2019-land-cover-conus) and aggregated to \~1km resolution.
 
-#### Exercise #6 {style="color:red"}
+#### Exercise #5 {style="color:red"}
 
 What is the purpose of this auxiliary file? How is this landcover raster data different from our elevation data?
